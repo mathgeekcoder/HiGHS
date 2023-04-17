@@ -230,4 +230,207 @@ class TestHighsPy(unittest.TestCase):
             h.run()
         out = out.getvalue()
         self.assertIn('got a log message:  HighsLogType.kInfo an instance of Foo Presolving model', out)
+   
+    def test_infeasible_model(self):
+        h = highspy.Highs()
+        h.setOptionValue('log_to_console', False)
+        h.setOptionValue('presolve', 'off')
 
+        x = h.addVar()
+        y = h.addVar()
+
+        h.addConstr(x + y == 3)
+        h.addConstr(x + y == 1)
+        
+        status = h.minimize(10*x + 15*y)
+        self.assertEqual(status, highspy.HighsStatus.kOk)
+
+        status = h.getModelStatus()
+        self.assertEqual(status, highspy.HighsModelStatus.kInfeasible)
+    
+    def test_basics_builder(self):
+        h = highspy.Highs()
+        h.setOptionValue('log_to_console', False)
+
+        x = h.addVar(lb=-h.inf)
+        y = h.addVar(lb=-h.inf)
+
+        c1 = h.addConstr(-x + y >= 2)
+        c2 = h.addConstr(x + y >= 0)
+
+        h.minimize(y)
+
+        self.assertAlmostEqual(h.val(x), -1)
+        self.assertAlmostEqual(h.val(y), 1)
+
+        """
+        min y
+        s.t.
+        -x + y >= 3
+        x + y >= 0
+        """
+        h.changeRowBounds(0, 3, h.inf)
+        h.run()
+
+        self.assertAlmostEqual(h.val(x), -1.5)
+        self.assertAlmostEqual(h.val(y), 1.5)
+
+        # now make y integer
+        h.changeColsIntegrality(1, np.array([1]), np.array([highspy.HighsVarType.kInteger]))
+        h.run()
+        sol = h.getSolution()
+        self.assertAlmostEqual(sol.col_value[0], -1)
+        self.assertAlmostEqual(sol.col_value[1], 2)
+
+        """
+        now delete the first constraint and add a new one
+        
+        min y
+        s.t.
+        x + y >= 0
+        -x + y >= 0
+        """
+        h.removeConstr(c1)
+
+        c1 = h.addConstr(-x + y >= 0)
+
+        h.run()
+        
+        self.assertAlmostEqual(h.val(x), 0)
+        self.assertAlmostEqual(h.val(y), 0)
+
+        # change the upper bound of x to -5
+        h.changeColsBounds(1, np.array([0]), np.array([-h.inf], dtype=np.double),
+                           np.array([-5], dtype=np.double))
+        h.run()
+        self.assertAlmostEqual(h.val(x), -5)
+        self.assertAlmostEqual(h.val(y), 5)
+
+        # now maximize
+        h.changeRowBounds(1, -h.inf, 0)
+        h.changeRowBounds(0, -h.inf, 0)
+        h.minimize(-y)
+
+        self.assertAlmostEqual(h.val(x), -5)
+        self.assertAlmostEqual(h.val(y), -5)
+
+        self.assertEqual(h.getObjectiveSense(), highspy.ObjSense.kMinimize)
+        h.maximize(y)
+        self.assertEqual(h.getObjectiveSense(), highspy.ObjSense.kMaximize)
+
+        self.assertAlmostEqual(h.val(x), -5)
+        self.assertAlmostEqual(h.val(y), -5)
+
+        self.assertAlmostEqual(h.getObjectiveValue(), -5)
+
+        h.maximize(y + 1)
+        self.assertAlmostEqual(h.getObjectiveOffset(), 1)
+        self.assertAlmostEqual(h.getObjectiveValue(), -4)
+
+    def test_addVar(self):  
+        h = highspy.Highs()  
+        h.addVar()
+        h.update()
+        self.assertEqual(h.numVars, 1)  
+  
+    def test_removeVar(self):  
+        h = highspy.Highs()  
+        x = [h.addVar(), h.addVar()]
+
+        h.update()
+        self.assertEqual(h.numVars, 2)
+
+        h.removeVar(x[0])
+        self.assertEqual(h.numVars, 1)
+
+    def test_addConstr(self):  
+        h = highspy.Highs()
+        x = h.addVar()
+        y = h.addVar()
+
+        h.addConstr(2*x + 3*y <= 10)  
+        self.assertEqual(h.numVars, 2)
+        self.assertEqual(h.numConstrs, 1)  
+        self.assertEqual(h.getNumNz(), 2)
+
+        lp = h.getLp()
+        self.assertAlmostEqual(lp.row_lower_[0], -h.inf)
+        self.assertAlmostEqual(lp.row_upper_[0], 10)
+
+        self.assertEqual(lp.a_matrix_.index_[0], 0)
+        self.assertEqual(lp.a_matrix_.index_[1], 1)
+
+        self.assertAlmostEqual(lp.a_matrix_.value_[0], 2)
+        self.assertAlmostEqual(lp.a_matrix_.value_[1], 3)
+  
+    def test_removeConstr(self):  
+        h = highspy.Highs()
+        x = h.addVar()
+        y = h.addVar()
+        c = h.addConstr(2*x + 3*y <= 10)
+        self.assertEqual(h.numConstrs, 1)
+
+        h.removeConstr(c)  
+        self.assertEqual(h.numVars, 2)
+        self.assertEqual(h.numConstrs, 0)  
+  
+    def test_val(self):  
+        h = highspy.Highs()
+        h.setOptionValue('log_to_console', False)
+
+        x = [h.addVar(), h.addVar()]
+        h.addConstr(2*x[0] + 3*x[1] <= 10)
+        h.maximize(x[0])
+
+        self.assertAlmostEqual(h.val(x[0]), 5)
+
+        vals = h.vals(x)  
+        self.assertAlmostEqual(vals[0], 5)
+        self.assertAlmostEqual(vals[1], 0)
+
+    def test_binary(self):  
+        h = highspy.Highs()
+        h.setOptionValue('log_to_console', False)
+
+        x = [h.addBinary(), h.addBinary()]
+        h.addConstr(2*x[0] + 3*x[1] <= 10)
+        h.maximize(x[0])
+
+        lp = h.getLp()
+        self.assertAlmostEqual(lp.col_lower_[0], 0)
+        self.assertAlmostEqual(lp.col_upper_[0], 1)
+        self.assertEqual(lp.integrality_[0], highspy.HighsVarType.kInteger)
+
+        self.assertAlmostEqual(h.val(x[0]), 1)
+
+        vals = h.vals(x)  
+        self.assertAlmostEqual(vals[0], 1)
+        self.assertAlmostEqual(vals[1], 0)
+
+    def test_integer(self):  
+        h = highspy.Highs()
+        h.setOptionValue('log_to_console', False)
+
+        x = [h.addIntegral(), h.addVar()]
+        h.addConstr(2*x[0] + 3*x[1] <= 10.6)
+        h.maximize(x[0]+x[1])
+
+        lp = h.getLp()
+        self.assertEqual(lp.integrality_[0], highspy.HighsVarType.kInteger)
+        self.assertEqual(lp.integrality_[1], highspy.HighsVarType.kContinuous)
+
+        self.assertAlmostEqual(h.val(x[0]), 5)
+
+        vals = h.vals(x)  
+        self.assertAlmostEqual(vals[0], 5)
+        self.assertAlmostEqual(vals[1], 0.2)
+
+    def test_objective(self):  
+        h = highspy.Highs()
+        h.setOptionValue('log_to_console', False)
+
+        x = [h.addVar(), h.addVar()]
+        h.addConstr(2*x[0] + 3*x[1] <= 10)
+
+        self.assertRaises(Exception, h.maximize, x[0]+x[1] <= 3)
+        self.assertRaises(Exception, h.minimize, x[0]+x[1] <= 3)
