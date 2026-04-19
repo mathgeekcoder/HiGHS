@@ -327,3 +327,24 @@ TEST_CASE("HighsHessian", "[highs_hessian]") {
     triangular_hessian.print();
   }
 }
+
+TEST_CASE("square-near-symmetric-hessian", "[highs_hessian]") {
+  const double epsilon = 1e-15;
+  HighsOptions options;
+  HighsHessian square_hessian;
+  // .  0  1  2
+  // 0  5  1   1+eps
+  // 1  1  4  0
+  // 2  1  0  3
+
+  square_hessian.dim_ = 3;
+  square_hessian.format_ = HessianFormat::kSquare;
+  square_hessian.start_ = {0, 4, 6, 8};
+  square_hessian.index_ = {0, 1, 2,   1,    0, 1,  0,         2};
+  square_hessian.value_ = {5, 1, 1, 0.1,  1.1, 4,  1+epsilon, 3};
+  //  if (dev_run)
+    printf("square-near-symmetric-hessian: 0-1 and 1-0 values are %.24g and %.24g, with difference %g\n",
+	   square_hessian.value_[2], square_hessian.value_[6],
+	   std::fabs(square_hessian.value_[2] - square_hessian.value_[6]));
+  REQUIRE(assessHessian(square_hessian, options) == HighsStatus::kOk);
+}
