@@ -143,9 +143,9 @@ HighsStatus assessMatrix(
   double max_large_value = 0;
   double min_large_value = kHighsInf;
   HighsInt num_duplicate = 0;
-  // Use index_map to identify duplicates.
-  //  HighsHashTable<HighsInt> index_set;
+  // Use index-key map to identify duplicates.
   std::vector<HighsInt> el_in_vec;
+  std::unordered_map<HighsInt, HighsInt> index_set;
   const HighsInt illegal_el = -1;
   el_in_vec.assign(vec_dim, illegal_el);
 
@@ -184,22 +184,28 @@ HighsStatus assessMatrix(
       HighsInt previous_el = el_in_vec[component];
       bool is_duplicate = previous_el > illegal_el;
       // 2821 eliminates need for index_set
-      /*
-      legal_component = index_set.find(component) == nullptr;
+      auto found_component = index_set.find(component);
+      legal_component = found_component == index_set.end();
       if (legal_component != !is_duplicate) {
         printf(
-            "assessMatrix: ix = %d; el_in_vec[%d/%d] = %d; legal_component = "
-            "%d\n",
+            "assessMatrix: ix = %d; el_in_vec[%d/%d] = %d; found_component = "
+            "(%d, %d)\n",
             int(ix), int(component), int(vec_dim), int(previous_el),
-            legal_component);
+            int(found_component->first), int(found_component->second));
       }
       assert(legal_component == !is_duplicate);
-      */
       if (is_duplicate) {
+	bool found_previous_el = found_component->second == previous_el;
+	if (!found_previous_el) {
+	  printf("Duplicate with found_component = (%d, %d) and matrix_index[%d] = %d\n",
+		 int(found_component->first), int(found_component->second),
+		 int(previous_el), int(matrix_index[previous_el]));
+	  assert(found_previous_el);
+          assert(matrix_index[previous_el] == component);
+	}
         if (sum_duplicates) {
           num_duplicate++;
           // Sum the duplicate entry
-          assert(matrix_index[previous_el] == component);
           matrix_value[previous_el] += matrix_value[el];
           continue;
         }
@@ -217,12 +223,19 @@ HighsStatus assessMatrix(
       matrix_index[num_new_nz] = matrix_index[el];
       matrix_value[num_new_nz] = matrix_value[el];
       // Record where the index has occurred
-      //      index_set.insert(component);
+      index_set.insert({component, num_new_nz});
       el_in_vec[component] = num_new_nz;
       num_new_nz++;
     }
     from_el = matrix_start[ix];
     to_el = num_new_nz;
+    for (HighsInt el = from_el; el < to_el; el++) {
+      HighsInt component = matrix_index[el];
+      auto found_component = index_set.find(component);
+      assert(found_component != index_set.end());
+      assert(found_component->first == component);
+      assert(found_component->second == el);
+    }
     // Reset num_new_nz
     num_new_nz = matrix_start[ix];
     // Reset el_in_vec
@@ -275,7 +288,7 @@ HighsStatus assessMatrix(
         num_new_nz++;
       }
     }  // Loop from_el; to_el
-    //    index_set.clear();
+    index_set.clear();
     /*
     if (expensive_2821_check) {
       // Reset el_in_vec
