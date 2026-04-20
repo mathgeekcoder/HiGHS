@@ -147,6 +147,11 @@ HighsStatus assessMatrix(
   std::vector<HighsInt> el_in_vec;
   std::unordered_map<HighsInt, HighsInt> index_set;
   const HighsInt illegal_el = -1;
+
+  const bool use_el_in_vec = true;
+  const bool use_index_set = true;
+  const bool use_both = use_el_in_vec && use_index_set;
+  assert(use_el_in_vec || use_index_set);
   el_in_vec.assign(vec_dim, illegal_el);
 
   for (HighsInt ix = 0; ix < num_vec; ix++) {
@@ -180,29 +185,42 @@ HighsStatus assessMatrix(
                      matrix_name.c_str(), ix, el, component, vec_dim);
         return HighsStatus::kError;
       }
-      // Check that the index has not already occurred.
-      HighsInt previous_el = el_in_vec[component];
-      bool is_duplicate = previous_el > illegal_el;
-      // 2821 eliminates need for index_set
-      auto found_component = index_set.find(component);
-      legal_component = found_component == index_set.end();
-      if (legal_component != !is_duplicate) {
-        printf(
-            "assessMatrix: ix = %d; el_in_vec[%d/%d] = %d; found_component = "
-            "(%d, %d)\n",
-            int(ix), int(component), int(vec_dim), int(previous_el),
-            int(found_component->first), int(found_component->second));
-      }
-      assert(legal_component == !is_duplicate);
-      if (is_duplicate) {
-	bool found_previous_el = found_component->second == previous_el;
-	if (!found_previous_el) {
-	  printf("Duplicate with found_component = (%d, %d) and matrix_index[%d] = %d\n",
-		 int(found_component->first), int(found_component->second),
-		 int(previous_el), int(matrix_index[previous_el]));
-	  assert(found_previous_el);
-          assert(matrix_index[previous_el] == component);
+      // Check whether the index has already occurred.
+      HighsInt previous_el = -1;
+      bool is_duplicate0 = false;
+      bool is_duplicate1 = false;
+      bool is_duplicate = false;
+      if (use_el_in_vec) {
+	previous_el = el_in_vec[component];
+	is_duplicate0 = previous_el > illegal_el;
+	if (use_index_set) {
+	  auto found_component = index_set.find(component);
+	  is_duplicate1 = found_component != index_set.end();
+	  if (is_duplicate0 != is_duplicate1) {
+	    printf("assessMatrix: ix = %d; el_in_vec[%d/%d] = %d; found_component = "
+		   "(%d, %d)\n",
+		   int(ix), int(component), int(vec_dim), int(previous_el),
+		   int(found_component->first), int(found_component->second));
+	  }
+	  assert(is_duplicate0 == is_duplicate1);
+	  if (is_duplicate1) {
+	    bool found_previous_el = found_component->second == previous_el;
+	    if (!found_previous_el) {
+	      printf("Duplicate with found_component = (%d, %d) and matrix_index[%d] = %d\n",
+		     int(found_component->first), int(found_component->second),
+		     int(previous_el), int(matrix_index[previous_el]));
+	      assert(found_previous_el);
+	      assert(matrix_index[previous_el] == component);
+	    }
+	  }
 	}
+	is_duplicate = is_duplicate0;
+      } else {
+	auto found_component = index_set.find(component);
+	is_duplicate = found_component != index_set.end();
+	if (is_duplicate) previous_el = found_component->second;
+      }
+      if (is_duplicate) {
         if (sum_duplicates) {
           num_duplicate++;
           // Sum the duplicate entry
@@ -222,33 +240,41 @@ HighsStatus assessMatrix(
       // the new number of nonzeros
       matrix_index[num_new_nz] = matrix_index[el];
       matrix_value[num_new_nz] = matrix_value[el];
-      // Record where the index has occurred
-      index_set.insert({component, num_new_nz});
-      el_in_vec[component] = num_new_nz;
+      if (use_el_in_vec) {
+	el_in_vec[component] = num_new_nz;
+      }
+      if (use_index_set) {
+	// Record where the index has occurred
+	index_set.insert({component, num_new_nz});
+      }
       num_new_nz++;
     }
     from_el = matrix_start[ix];
     to_el = num_new_nz;
-    for (HighsInt el = from_el; el < to_el; el++) {
-      HighsInt component = matrix_index[el];
-      auto found_component = index_set.find(component);
-      assert(found_component != index_set.end());
-      assert(found_component->first == component);
-      assert(found_component->second == el);
+    if (use_index_set) {
+      for (HighsInt el = from_el; el < to_el; el++) {
+	HighsInt component = matrix_index[el];
+	auto found_component = index_set.find(component);
+	assert(found_component != index_set.end());
+	assert(found_component->first == component);
+	assert(found_component->second == el);
+      }
     }
     // Reset num_new_nz
     num_new_nz = matrix_start[ix];
-    // Reset el_in_vec
-    for (HighsInt el = from_el; el < to_el; el++)
-      el_in_vec[matrix_index[el]] = illegal_el;
-    //    const bool expensive_2821_check = true;
-    /*
-    if (expensive_2821_check) {
-      // Check el_in_vec !! Remove later!
-      for (HighsInt lc_ix = 0; lc_ix < vec_dim; lc_ix++)
+    if (use_el_in_vec) {
+      // Reset el_in_vec
+      for (HighsInt el = from_el; el < to_el; el++)
+	el_in_vec[matrix_index[el]] = illegal_el;
+      //    const bool expensive_2821_check = true;
+      /*
+	if (expensive_2821_check) {
+	// Check el_in_vec !! Remove later!
+	for (HighsInt lc_ix = 0; lc_ix < vec_dim; lc_ix++)
         assert(el_in_vec[lc_ix] == illegal_el);
+	}
+      */
     }
-    */
     for (HighsInt el = from_el; el < to_el; el++) {
       HighsInt component = matrix_index[el];
       /*
@@ -288,7 +314,7 @@ HighsStatus assessMatrix(
         num_new_nz++;
       }
     }  // Loop from_el; to_el
-    index_set.clear();
+    if (use_index_set) index_set.clear();
     /*
     if (expensive_2821_check) {
       // Reset el_in_vec
