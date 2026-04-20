@@ -143,18 +143,14 @@ HighsStatus assessMatrix(
   double max_large_value = 0;
   double min_large_value = kHighsInf;
   HighsInt num_duplicate = 0;
-  // Use index-key map to identify duplicates.
-  std::vector<HighsInt> el_in_vec;
-  std::unordered_map<HighsInt, HighsInt> index_set;
-  HighsHashTable<HighsInt> highs_hash;
   const HighsInt illegal_el = -1;
-
-  const bool use_el_in_vec = true;
-  const bool use_index_set = false;
-  const bool use_highs_hash = false;
-  const bool use_both = use_el_in_vec && use_index_set;
-  assert(use_el_in_vec || use_index_set);
-  if (use_el_in_vec) el_in_vec.assign(vec_dim, illegal_el);
+  // When duplicates only have to be identified (and not summed) use
+  // highs_hash
+  const bool use_highs_hash = !sum_duplicates;
+  HighsHashTable<HighsInt> highs_hash;
+  // Otherwise, use index-key map to identify entry number of
+  // duplicates so they can be summed
+  std::unordered_map<HighsInt, HighsInt> index_el_map;
 
   for (HighsInt ix = 0; ix < num_vec; ix++) {
     HighsInt from_el = matrix_start[ix];
@@ -188,47 +184,21 @@ HighsStatus assessMatrix(
         return HighsStatus::kError;
       }
       // Check whether the index has already occurred.
-      HighsInt previous_el = -1;
-      bool is_duplicate0 = false;
-      bool is_duplicate1 = false;
+      HighsInt previous_el = illegal_el;
       bool is_duplicate = false;
-      if (use_el_in_vec) {
-	previous_el = el_in_vec[component];
-	is_duplicate0 = previous_el > illegal_el;
-	if (use_index_set) {
-	  auto found_component = index_set.find(component);
-	  is_duplicate1 = found_component != index_set.end();
-	  if (is_duplicate0 != is_duplicate1) {
-	    printf("assessMatrix: ix = %d; el_in_vec[%d/%d] = %d; found_component = "
-		   "(%d, %d)\n",
-		   int(ix), int(component), int(vec_dim), int(previous_el),
-		   int(found_component->first), int(found_component->second));
-	  }
-	  assert(is_duplicate0 == is_duplicate1);
-	  if (is_duplicate1) {
-	    bool found_previous_el = found_component->second == previous_el;
-	    if (!found_previous_el) {
-	      printf("Duplicate with found_component = (%d, %d) and matrix_index[%d] = %d\n",
-		     int(found_component->first), int(found_component->second),
-		     int(previous_el), int(matrix_index[previous_el]));
-	      assert(found_previous_el);
-	      assert(matrix_index[previous_el] == component);
-	    }
-	  }
-	}
-	is_duplicate = is_duplicate0;
-      } else if (use_highs_hash) {
-	is_duplicate = highs_hash.find(component) != nullptr;
+      if (use_highs_hash) {
+        is_duplicate = highs_hash.find(component) != nullptr;
       } else {
-	auto found_component = index_set.find(component);
-	is_duplicate = found_component != index_set.end();
-	if (is_duplicate) previous_el = found_component->second;
+        auto found_component = index_el_map.find(component);
+        is_duplicate = found_component != index_el_map.end();
+        if (is_duplicate) previous_el = found_component->second;
       }
       if (is_duplicate) {
-	if (use_highs_hash) assert(!sum_duplicates);
         if (sum_duplicates) {
           num_duplicate++;
-          // Sum the duplicate entry
+          // Sum the duplicate entry, making sure that it's been
+          // assigned
+          assert(previous_el != illegal_el);
           matrix_value[previous_el] += matrix_value[el];
           continue;
         }
@@ -245,55 +215,21 @@ HighsStatus assessMatrix(
       // the new number of nonzeros
       matrix_index[num_new_nz] = matrix_index[el];
       matrix_value[num_new_nz] = matrix_value[el];
-      if (use_el_in_vec) {
-	el_in_vec[component] = num_new_nz;
-      }
-      if (use_index_set) {
-	// Record where the index has occurred
-	index_set.insert({component, num_new_nz});
-      }
       if (use_highs_hash) {
-	highs_hash.insert(component);
+        // Record that the index has occurred
+        highs_hash.insert(component);
+      } else {
+        // Record where the index has occurred
+        index_el_map.insert({component, num_new_nz});
       }
       num_new_nz++;
     }
     from_el = matrix_start[ix];
     to_el = num_new_nz;
-    /*
-    if (use_index_set) {
-      for (HighsInt el = from_el; el < to_el; el++) {
-	HighsInt component = matrix_index[el];
-	auto found_component = index_set.find(component);
-	assert(found_component != index_set.end());
-	assert(found_component->first == component);
-	assert(found_component->second == el);
-      }
-    }
-    */
     // Reset num_new_nz
     num_new_nz = matrix_start[ix];
-    if (use_el_in_vec) {
-      // Reset el_in_vec
-      for (HighsInt el = from_el; el < to_el; el++)
-	el_in_vec[matrix_index[el]] = illegal_el;
-      //    const bool expensive_2821_check = true;
-      /*
-	if (expensive_2821_check) {
-	// Check el_in_vec !! Remove later!
-	for (HighsInt lc_ix = 0; lc_ix < vec_dim; lc_ix++)
-        assert(el_in_vec[lc_ix] == illegal_el);
-	}
-      */
-    }
     for (HighsInt el = from_el; el < to_el; el++) {
       HighsInt component = matrix_index[el];
-      /*
-      if (expensive_2821_check) {
-        // Ensure that duplicates have been eliminated
-        HighsInt previous_el = el_in_vec[component];
-        assert(previous_el == illegal_el);
-      }
-      */
       // Check the value
       double abs_value = fabs(matrix_value[el]);
       // Check that the value is not too large
@@ -315,27 +251,14 @@ HighsStatus assessMatrix(
         // the new number of nonzeros
         matrix_index[num_new_nz] = matrix_index[el];
         matrix_value[num_new_nz] = matrix_value[el];
-        /*
-        if (expensive_2821_check) {
-          // Record where the index has occurred
-          el_in_vec[component] = num_new_nz;
-        }
-        */
         num_new_nz++;
       }
     }  // Loop from_el; to_el
-    if (use_index_set) index_set.clear();
-    if (use_highs_hash) highs_hash.clear();
-    /*
-    if (expensive_2821_check) {
-      // Reset el_in_vec
-      for (HighsInt el = from_el; el < to_el; el++)
-        el_in_vec[matrix_index[el]] = illegal_el;
-      // Check el_in_vec !! Remove later!
-      for (HighsInt lc_ix = 0; lc_ix < vec_dim; lc_ix++)
-        assert(el_in_vec[lc_ix] == illegal_el);
+    if (use_highs_hash) {
+      highs_hash.clear();
+    } else {
+      index_el_map.clear();
     }
-    */
   }  // Loop 0; num_vec
   if (num_duplicate) {
     highsLogUser(log_options, HighsLogType::kInfo,
