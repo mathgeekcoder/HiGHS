@@ -146,10 +146,12 @@ HighsStatus assessMatrix(
   // Use index-key map to identify duplicates.
   std::vector<HighsInt> el_in_vec;
   std::unordered_map<HighsInt, HighsInt> index_set;
+  HighsHashTable<HighsInt> highs_hash;
   const HighsInt illegal_el = -1;
 
-  const bool use_el_in_vec = false;
-  const bool use_index_set = true;
+  const bool use_el_in_vec = true;
+  const bool use_index_set = false;
+  const bool use_highs_hash = false;
   const bool use_both = use_el_in_vec && use_index_set;
   assert(use_el_in_vec || use_index_set);
   if (use_el_in_vec) el_in_vec.assign(vec_dim, illegal_el);
@@ -215,12 +217,15 @@ HighsStatus assessMatrix(
 	  }
 	}
 	is_duplicate = is_duplicate0;
+      } else if (use_highs_hash) {
+	is_duplicate = highs_hash.find(component) != nullptr;
       } else {
 	auto found_component = index_set.find(component);
 	is_duplicate = found_component != index_set.end();
 	if (is_duplicate) previous_el = found_component->second;
       }
       if (is_duplicate) {
+	if (use_highs_hash) assert(!sum_duplicates);
         if (sum_duplicates) {
           num_duplicate++;
           // Sum the duplicate entry
@@ -246,6 +251,9 @@ HighsStatus assessMatrix(
       if (use_index_set) {
 	// Record where the index has occurred
 	index_set.insert({component, num_new_nz});
+      }
+      if (use_highs_hash) {
+	highs_hash.insert(component);
       }
       num_new_nz++;
     }
@@ -317,6 +325,7 @@ HighsStatus assessMatrix(
       }
     }  // Loop from_el; to_el
     if (use_index_set) index_set.clear();
+    if (use_highs_hash) highs_hash.clear();
     /*
     if (expensive_2821_check) {
       // Reset el_in_vec

@@ -576,7 +576,7 @@ TEST_CASE("efficient-add-row", "[highs_filereader]") {
   std::string filename;
   filename =
     // std::string(HIGHS_DIR) + "/check/instances/adlittle.mps";
-    "/srv/mps_da/cont1.mps.gz";
+    "/srv/mps_da/neos.mps.gz";
   Highs h;
   //  h.setOptionValue("output_flag", dev_run);
   REQUIRE(h.readModel(filename) == HighsStatus::kOk);
