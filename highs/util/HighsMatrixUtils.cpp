@@ -148,11 +148,11 @@ HighsStatus assessMatrix(
   std::unordered_map<HighsInt, HighsInt> index_set;
   const HighsInt illegal_el = -1;
 
-  const bool use_el_in_vec = true;
+  const bool use_el_in_vec = false;
   const bool use_index_set = true;
   const bool use_both = use_el_in_vec && use_index_set;
   assert(use_el_in_vec || use_index_set);
-  el_in_vec.assign(vec_dim, illegal_el);
+  if (use_el_in_vec) el_in_vec.assign(vec_dim, illegal_el);
 
   for (HighsInt ix = 0; ix < num_vec; ix++) {
     HighsInt from_el = matrix_start[ix];
@@ -251,6 +251,7 @@ HighsStatus assessMatrix(
     }
     from_el = matrix_start[ix];
     to_el = num_new_nz;
+    /*
     if (use_index_set) {
       for (HighsInt el = from_el; el < to_el; el++) {
 	HighsInt component = matrix_index[el];
@@ -260,6 +261,7 @@ HighsStatus assessMatrix(
 	assert(found_component->second == el);
       }
     }
+    */
     // Reset num_new_nz
     num_new_nz = matrix_start[ix];
     if (use_el_in_vec) {
