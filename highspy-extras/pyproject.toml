@@ -73,16 +73,27 @@ sdist.exclude = [
   "highs.pc.in",
 ]
 
-[tool.scikit-build.cmake.define]
-BUILD_OPENBLAS = "ON"
-
-[[tool.scikit-build.overrides]]
-if.platform-system = "darwin"
-cmake.define.BUILD_OPENBLAS = "OFF"
-
 [tool.cibuildwheel]
 build = "*"
 archs = ["auto64", "auto32"]
 repair-wheel-command = ""
-
 build-verbosity = 1
+
+# Forward VCPKG_ROOT into the isolated build environment.
+environment-pass = ["VCPKG_ROOT", "VCPKG_DEFAULT_BINARY_CACHE", "VCPKG_BINARY_SOURCES"]
+
+[tool.cibuildwheel.linux]
+# installs zip and vcpkg
+before-all = [
+  "command -v zip >/dev/null 2>&1 || yum install -y zip || apt-get update && apt-get install -y zip || apk add --no-cache zip",
+  ": \"${VCPKG_ROOT:=/opt/vcpkg}\"; [ -d \"$VCPKG_ROOT/.git\" ] || git clone https://github.com/microsoft/vcpkg.git \"$VCPKG_ROOT\"; [ -x \"$VCPKG_ROOT/vcpkg\" ] || \"$VCPKG_ROOT/bootstrap-vcpkg.sh\" -disableMetrics",
+]
+environment = { VCPKG_ROOT = "/opt/vcpkg" }
+
+[tool.cibuildwheel.windows]
+# Only installs vcpkg if needed (github already includes it)
+before-all = [
+  "if not defined VCPKG_ROOT set VCPKG_ROOT=C:\\vcpkg",
+  "if not exist \"%VCPKG_ROOT%\\.git\" git clone https://github.com/microsoft/vcpkg.git \"%VCPKG_ROOT%\"",
+  "if not exist \"%VCPKG_ROOT%\\vcpkg.exe\" call \"%VCPKG_ROOT%\\bootstrap-vcpkg.bat\" -disableMetrics",
+]

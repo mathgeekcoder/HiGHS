@@ -5,6 +5,7 @@ option(BUILD_SHARED_EXTRAS_LIB "Build shared extras library" ON)
 
 # configure the version
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/../cmake")
+include(vcpkg)
 include(set-version)
 set_version(VERSION ${CMAKE_CURRENT_LIST_DIR}/..)
 
@@ -18,51 +19,6 @@ configure_file(${CMAKE_CURRENT_LIST_DIR}/../highs/HConfig.h.in ${PROJECT_BINARY_
 
 # print the version for debugging
 message(STATUS "Configuring highs_extras version ${VERSION}")
-
-# support vcpkg for external dependencies
-if(DEFINED ENV{VCPKG_ROOT})
-  file(TO_CMAKE_PATH "$ENV{VCPKG_ROOT}" VCPKG_ROOT_CMAKE)
-
-  if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
-    set(CMAKE_TOOLCHAIN_FILE
-      "${VCPKG_ROOT_CMAKE}/scripts/buildsystems/vcpkg.cmake"
-      CACHE FILEPATH "vcpkg toolchain file")
-  endif()
-
-  if(NOT DEFINED VCPKG_TARGET_TRIPLET)
-    if(DEFINED ENV{VCPKG_TARGET_TRIPLET})
-      set(VCPKG_TARGET_TRIPLET "$ENV{VCPKG_TARGET_TRIPLET}"
-        CACHE STRING "vcpkg triplet")
-    else()
-      if(CMAKE_GENERATOR_PLATFORM STREQUAL "Win32")
-        set(_vcpkg_arch x86)
-      elseif(CMAKE_GENERATOR_PLATFORM STREQUAL "ARM64")
-        set(_vcpkg_arch arm64)
-      elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64)$")
-        set(_vcpkg_arch x64)
-      elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64)$")
-        set(_vcpkg_arch arm64)
-      endif()
-
-      if(WIN32 AND DEFINED _vcpkg_arch)
-        set(VCPKG_TARGET_TRIPLET "${_vcpkg_arch}-windows-static"
-          CACHE STRING "vcpkg triplet")
-      elseif(APPLE AND DEFINED _vcpkg_arch)
-        set(VCPKG_TARGET_TRIPLET "${_vcpkg_arch}-osx"
-          CACHE STRING "vcpkg triplet")
-      elseif(UNIX AND DEFINED _vcpkg_arch)
-        set(VCPKG_TARGET_TRIPLET "${_vcpkg_arch}-linux"
-          CACHE STRING "vcpkg triplet")
-      endif()
-    endif()
-  endif()
-
-  if(NOT DEFINED OpenBLAS_DIR)
-    set(OpenBLAS_DIR
-      "${VCPKG_ROOT_CMAKE}/installed/${VCPKG_TARGET_TRIPLET}/share/openblas"
-      CACHE PATH "Path to OpenBLAS CMake package")
-  endif()
-endif()
 
 include(FindHipoDeps)
 

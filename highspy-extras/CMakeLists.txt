@@ -5,6 +5,9 @@
 
 cmake_minimum_required(VERSION 3.15...3.27)
 
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/../cmake")
+include(vcpkg) # vcpkg must be configured BEFORE project()
+
 project(highs_extras LANGUAGES C CXX)
 
 add_subdirectory(
