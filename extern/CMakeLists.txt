@@ -19,9 +19,8 @@ configure_file(${CMAKE_CURRENT_LIST_DIR}/../highs/HConfig.h.in ${PROJECT_BINARY_
 # print the version for debugging
 message(STATUS "Configuring highs_extras version ${VERSION}")
 
-
 # support vcpkg for external dependencies
-if(WIN32 AND DEFINED ENV{VCPKG_ROOT})
+if(DEFINED ENV{VCPKG_ROOT})
   file(TO_CMAKE_PATH "$ENV{VCPKG_ROOT}" VCPKG_ROOT_CMAKE)
 
   if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
@@ -35,8 +34,26 @@ if(WIN32 AND DEFINED ENV{VCPKG_ROOT})
       set(VCPKG_TARGET_TRIPLET "$ENV{VCPKG_TARGET_TRIPLET}"
         CACHE STRING "vcpkg triplet")
     else()
-      set(VCPKG_TARGET_TRIPLET "x64-windows-static"
-        CACHE STRING "vcpkg triplet")
+      if(CMAKE_GENERATOR_PLATFORM STREQUAL "Win32")
+        set(_vcpkg_arch x86)
+      elseif(CMAKE_GENERATOR_PLATFORM STREQUAL "ARM64")
+        set(_vcpkg_arch arm64)
+      elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64)$")
+        set(_vcpkg_arch x64)
+      elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64)$")
+        set(_vcpkg_arch arm64)
+      endif()
+
+      if(WIN32 AND DEFINED _vcpkg_arch)
+        set(VCPKG_TARGET_TRIPLET "${_vcpkg_arch}-windows-static"
+          CACHE STRING "vcpkg triplet")
+      elseif(APPLE AND DEFINED _vcpkg_arch)
+        set(VCPKG_TARGET_TRIPLET "${_vcpkg_arch}-osx"
+          CACHE STRING "vcpkg triplet")
+      elseif(UNIX AND DEFINED _vcpkg_arch)
+        set(VCPKG_TARGET_TRIPLET "${_vcpkg_arch}-linux"
+          CACHE STRING "vcpkg triplet")
+      endif()
     endif()
   endif()
 
@@ -171,7 +188,7 @@ function(highs_extras_link_blas target_name)
   message(FATAL_ERROR "OpenBLAS not found for highs_extras")
 endfunction()
 
-if (${BUILD_SHARED_EXTRAS_LIB})
+if (BUILD_SHARED_EXTRAS_LIB)
   add_library(highs_extras SHARED
       ${highs_extras_sources}
       ${highs_extras_headers})
@@ -196,14 +213,15 @@ highs_extras_link_blas(highs_extras)
 if(MSVC)
   target_compile_options(highs_extras PRIVATE "/bigobj")
 else()
-  target_compile_options(highs_extras PRIVATE "-ftemplate-depth=2048")
+  target_compile_options(highs_extras PRIVATE 
+    $<$<COMPILE_LANGUAGE:CXX>:-ftemplate-depth=2048>)
 endif()
 
 set_target_properties(highs_extras PROPERTIES
     OUTPUT_NAME "highs_extras"
     POSITION_INDEPENDENT_CODE ON)
 
-if(${BUILD_SHARED_EXTRAS_LIB})
+if(BUILD_SHARED_EXTRAS_LIB)
   set_target_properties(highs_extras PROPERTIES
     CXX_VISIBILITY_PRESET hidden
     C_VISIBILITY_PRESET hidden
