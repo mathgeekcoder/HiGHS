@@ -176,11 +176,9 @@ struct HighsExternalDeps {
     }
   };
 
+  // rcm has MIT license and is always statically linked
+  // accessed via HighsExternalDeps for consistency 
   struct rcm {
-//#ifdef HIGHS_SHARED_EXTRAS_LIBRARY
-//    highs_extras_api::rcm::genrcm_t genrcm_ = nullptr;
-//#endif
-
     static inline int genrcm(HighsInt node_num, HighsInt adj_num,
                       const HighsInt adj_row[], const HighsInt adj[],
                       HighsInt perm[]) {
@@ -203,28 +201,28 @@ struct HighsExternalDeps {
   HighsExternalDeps(const HighsExternalDeps&) = delete;
   HighsExternalDeps& operator=(const HighsExternalDeps&) = delete;
 
+  static bool tryLoad();
 #ifndef HIPO
   static inline bool isAvailable() { return false; }
   static constexpr bool isAvailableAtCompile() { return false; }
 
-  static bool tryLoad(const std::string& path) {return false; }
-  static void unload() {};
-  static const std::string getLastError() { return ""; }
-
+  static inline bool tryLoad(const std::string& path) { return false; }
+  static inline void unload() {}
+  static inline const std::string getLoadStatus() { return "Extras: Unavailable"; }
 #elif defined(HIGHS_SHARED_EXTRAS_LIBRARY)
-  static inline bool isAvailable() { return instance().available_; }
+  static inline bool isAvailable() { return tryLoad(); }
   static constexpr bool isAvailableAtCompile() { return false; }
 
   static bool tryLoad(const std::string& path);
   static void unload();
-  static const std::string getLastError() { return instance().last_error_; }
+  static const std::string getLoadStatus() { return instance().status_; }
 #else
   static inline bool isAvailable() { return true; }
   static constexpr bool isAvailableAtCompile() { return true; }
 
-  static inline bool tryLoad(const std::string&) { return true; }
+  static inline bool tryLoad(const std::string& path) { return true; }
   static inline void unload() {}
-  static inline const std::string getLastError() { return ""; }
+  static inline const std::string getLoadStatus() { return "Extras: Available at compile time"; }
 #endif
 
   static inline std::string getCopyrightInfo() {
@@ -243,8 +241,7 @@ private:
      
   highs_extras_api::core::get_copyright_t get_copyright_ = nullptr;
   bool available_ = false;
-  bool initialized_ = false;
-  std::string last_error_;
+  std::string status_;
 
   void clear();
 #endif

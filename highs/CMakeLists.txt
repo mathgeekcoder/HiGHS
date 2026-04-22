@@ -160,10 +160,25 @@ else()
       set_target_properties(highs PROPERTIES INSTALL_RPATH "$ORIGIN")
   endif()
 
-  if (${BUILD_SHARED_EXTRAS_LIB})
-    target_compile_definitions(highs PRIVATE HIGHS_SHARED_EXTRAS_LIBRARY)
-  else()
-    target_link_libraries(highs PRIVATE highs_extras)
+  if (HIPO)
+    if (BUILD_SHARED_EXTRAS_LIB)
+      target_compile_definitions(highs PRIVATE HIGHS_SHARED_EXTRAS_LIBRARY)
+
+      if(APPLE)
+        set_target_properties(highs PROPERTIES
+          INSTALL_RPATH "@loader_path;@loader_path/../${CMAKE_INSTALL_LIBDIR}"
+          BUILD_RPATH   "$<TARGET_FILE_DIR:highs_extras>"
+        )
+      elseif(UNIX)
+        set_target_properties(highs PROPERTIES
+          INSTALL_RPATH "$ORIGIN"
+          BUILD_RPATH   "$<TARGET_FILE_DIR:highs_extras>"
+        )
+      endif()
+    
+    else()
+      target_link_libraries(highs PRIVATE highs_extras)
+    endif()
   endif()
 
   target_sources(highs PRIVATE ${sources} ${headers} ${win_version_file})
