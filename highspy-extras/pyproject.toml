@@ -85,8 +85,6 @@ environment-pass = ["VCPKG_ROOT", "VCPKG_INSTALLATION_ROOT", "VCPKG_DEFAULT_BINA
 
 [tool.cibuildwheel.linux]
 environment = { VCPKG_ROOT = "/host$VCPKG_ROOT$VCPKG_INSTALLATION_ROOT" }
-before-build = 'git -C "$VCPKG_ROOT" pull --ff-only'
 
 [tool.cibuildwheel.windows]
 environment = { VCPKG_ROOT = "$VCPKG_ROOT$VCPKG_INSTALLATION_ROOT" }
-before-build = 'git -C "$VCPKG_ROOT" pull --ff-only'
