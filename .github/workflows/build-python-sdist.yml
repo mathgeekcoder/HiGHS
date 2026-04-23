@@ -190,6 +190,12 @@ jobs:
         run: |
           Get-ChildItem dist | ForEach-Object { python -m pip install $_.FullName }
 
+      - name: Debug extras loading
+        run: |
+          python -c "import highspy._core; print(highspy._core.getExtrasLoadStatus())"
+          python -c "import highspy_extras; print(highspy_extras.__file__); print(highspy_extras._PACKAGE_DIR)"
+          python -c "import highspy_extras; highspy_extras._load_library()"
+          
       - name: Test highspy
         run: |
           python -m pip install pytest
