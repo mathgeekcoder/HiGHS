@@ -80,7 +80,7 @@ repair-wheel-command = ""
 build-verbosity = 1
 
 # Forward VCPKG_ROOT into the isolated build environment.
-environment-pass = ["VCPKG_ROOT", "VCPKG_INSTALLATION_ROOT", "VCPKG_DEFAULT_BINARY_CACHE", "VCPKG_BINARY_SOURCES"]
+environment-pass = ["VCPKG_ROOT", "VCPKG_DEFAULT_BINARY_CACHE", "VCPKG_BINARY_SOURCES"]
 
 [tool.cibuildwheel.linux]
 # installs zip, build tools, and vcpkg
@@ -94,10 +94,8 @@ environment = { VCPKG_ROOT = "/opt/vcpkg", VCPKG_FORCE_SYSTEM_BINARIES = "1" }
 [tool.cibuildwheel.windows]
 # Only installs vcpkg if needed (github already includes it)
 before-all = [
-  "if not defined VCPKG_ROOT if defined VCPKG_INSTALLATION_ROOT set VCPKG_ROOT=%VCPKG_INSTALLATION_ROOT%",
   "if not defined VCPKG_ROOT set VCPKG_ROOT=C:\\vcpkg",
-  "echo VCPKG_ROOT is %VCPKG_ROOT%",
   "if not exist \"%VCPKG_ROOT%\\.git\" git clone https://github.com/microsoft/vcpkg.git \"%VCPKG_ROOT%\"",
   "if not exist \"%VCPKG_ROOT%\\vcpkg.exe\" call \"%VCPKG_ROOT%\\bootstrap-vcpkg.bat\" -disableMetrics",
 ]
-environment = { VCPKG_ROOT = "${VCPKG_ROOT:-${VCPKG_INSTALLATION_ROOT:-C:/vcpkg}}" }
+environment = { VCPKG_ROOT = "${VCPKG_ROOT:-C:/vcpkg}" }

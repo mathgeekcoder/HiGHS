@@ -202,6 +202,8 @@ struct HighsExternalDeps {
   HighsExternalDeps& operator=(const HighsExternalDeps&) = delete;
 
   static bool tryLoad();
+
+// Exclude dependencies
 #ifndef HIPO
   static inline bool isAvailable() { return false; }
   static constexpr bool isAvailableAtCompile() { return false; }
@@ -209,36 +211,37 @@ struct HighsExternalDeps {
   static inline bool tryLoad(const std::string& path) { return false; }
   static inline void unload() {}
   static inline const std::string getLoadStatus() { return "Extras: Unavailable"; }
-#elif defined(HIGHS_SHARED_EXTRAS_LIBRARY)
-  static inline bool isAvailable() { return tryLoad(); }
-  static constexpr bool isAvailableAtCompile() { return false; }
+  static inline std::string getCopyrightInfo() { return ""; }
 
-  static bool tryLoad(const std::string& path);
-  static void unload();
-  static const std::string getLoadStatus() { return instance().status_; }
 #else
-  static inline bool isAvailable() { return true; }
-  static constexpr bool isAvailableAtCompile() { return true; }
+  // Shared library support
+  #if defined(HIGHS_SHARED_EXTRAS_LIBRARY)
+    static inline bool isAvailable() { return tryLoad(); }
+    static constexpr bool isAvailableAtCompile() { return false; }
 
-  static inline bool tryLoad(const std::string& path) { return true; }
-  static inline void unload() {}
-  static inline const std::string getLoadStatus() { return "Extras: Available at compile time"; }
-#endif
+    static bool tryLoad(const std::string& path);
+    static void unload();
+    static const std::string getLoadStatus() { return instance().status_; }
+
+  // Static library support
+  #else
+    static inline bool isAvailable() { return true; }
+    static constexpr bool isAvailableAtCompile() { return true; }
+
+    static inline bool tryLoad(const std::string& path) { return true; }
+    static inline void unload() {}
+    static inline const std::string getLoadStatus() { return "Extras: Available at compile time"; }
+  #endif
 
   static inline std::string getCopyrightInfo() {
     return HIGHS_EXTERN_CALL(instance().get_copyright_,
                              highs_extras_get_copyright)();
   }
+#endif
 
 private:
 #ifdef HIGHS_SHARED_EXTRAS_LIBRARY
-// Library handle (platform-specific)
-#if defined(_WIN32) || defined(_WIN64)
-  void* lib_handle_ = nullptr;  // HMODULE
-#else
   void* lib_handle_ = nullptr;
-#endif
-     
   highs_extras_api::core::get_copyright_t get_copyright_ = nullptr;
   bool available_ = false;
   std::string status_;
