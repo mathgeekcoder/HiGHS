@@ -89,5 +89,11 @@ environment-pass = ["VCPKG_ROOT", "VCPKG_INSTALLATION_ROOT", "VCPKG_DEFAULT_BINA
 [tool.cibuildwheel.linux]
 environment = { VCPKG_ROOT = "/host$VCPKG_ROOT$VCPKG_INSTALLATION_ROOT" }
 
+# cannot use host vcpkg on i686 and musllinux
+[[tool.cibuildwheel.overrides]]
+select = "*-manylinux_i686 *-musllinux_*"
+inherit.environment = "none"
+environment = { VCPKG_ROOT = "", VCPKG_INSTALLATION_ROOT = "", CMAKE_ARGS = "-DBUILD_OPENBLAS=ON" }
+
 [tool.cibuildwheel.windows]
 environment = { VCPKG_ROOT = "$VCPKG_ROOT$VCPKG_INSTALLATION_ROOT" }

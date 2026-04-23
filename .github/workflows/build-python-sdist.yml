@@ -81,8 +81,7 @@ jobs:
 
       - name: install highspy
         run: |
-          $item = Get-ChildItem dist
-          python -m pip install "$item"
+          Get-ChildItem dist | ForEach-Object { python -m pip install $_.FullName }
 
       - name: Test Python Examples
         run: |
@@ -157,6 +156,8 @@ jobs:
 
       - name: Test highspy
         run: |
+          python3 -m venv path/to/venv
+          source path/to/venv/bin/activate
           python3 -m pip install pytest
           python3 -m pytest check/test_highspy_hipo.py
 
@@ -185,10 +186,9 @@ jobs:
       - name: check metadata
         run: pipx run twine check dist/*
 
-      - name: install highspy
+      - name: install highspy and highspy_extras
         run: |
-          $item = Get-ChildItem dist
-          python -m pip install "$item"
+          Get-ChildItem dist | ForEach-Object { python -m pip install $_.FullName }
 
       - name: Test highspy
         run: |
