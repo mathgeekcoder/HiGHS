@@ -79,23 +79,13 @@ archs = ["auto64", "auto32"]
 repair-wheel-command = ""
 build-verbosity = 1
 
-# Forward VCPKG_ROOT into the isolated build environment.
-environment-pass = ["VCPKG_ROOT", "VCPKG_DEFAULT_BINARY_CACHE", "VCPKG_BINARY_SOURCES"]
+# All github runners have vcpkg pre-installed
+# forward environment vars into the isolated build environment
+# assume either VCPKG_ROOT xor VCPKG_INSTALLATION_ROOT is defined
+environment-pass = ["VCPKG_ROOT", "VCPKG_INSTALLATION_ROOT", "VCPKG_DEFAULT_BINARY_CACHE", "VCPKG_BINARY_SOURCES"]
 
 [tool.cibuildwheel.linux]
-# installs zip, build tools, and vcpkg
-before-all = [
-  "command -v zip >/dev/null 2>&1 || yum install -y zip || (apt-get update && apt-get install -y zip) || apk add --no-cache zip",
-  "command -v ninja >/dev/null 2>&1 || yum install -y ninja-build gcc gcc-c++ make cmake curl tar || (apt-get update && apt-get install -y ninja-build g++ gcc make cmake curl tar) || apk add --no-cache ninja build-base cmake curl tar bash linux-headers",
-  ": \"${VCPKG_ROOT:=/opt/vcpkg}\"; [ -d \"$VCPKG_ROOT/.git\" ] || git clone https://github.com/microsoft/vcpkg.git \"$VCPKG_ROOT\"; [ -x \"$VCPKG_ROOT/vcpkg\" ] || LDFLAGS=\"${LDFLAGS:-} -ldl\" \"$VCPKG_ROOT/bootstrap-vcpkg.sh\" -disableMetrics",
-]
-environment = { VCPKG_ROOT = "/opt/vcpkg", VCPKG_FORCE_SYSTEM_BINARIES = "1" }
+environment = { VCPKG_ROOT = "/host$VCPKG_ROOT$VCPKG_INSTALLATION_ROOT" }
 
 [tool.cibuildwheel.windows]
-# Only installs vcpkg if needed (github already includes it)
-before-all = [
-  "if not defined VCPKG_ROOT set VCPKG_ROOT=C:\\vcpkg",
-  "if not exist \"%VCPKG_ROOT%\\.git\" git clone https://github.com/microsoft/vcpkg.git \"%VCPKG_ROOT%\"",
-  "if not exist \"%VCPKG_ROOT%\\vcpkg.exe\" call \"%VCPKG_ROOT%\\bootstrap-vcpkg.bat\" -disableMetrics",
-]
-environment = { VCPKG_ROOT = "${VCPKG_ROOT:-C:/vcpkg}" }
+environment = { VCPKG_ROOT = "$VCPKG_ROOT$VCPKG_INSTALLATION_ROOT" }

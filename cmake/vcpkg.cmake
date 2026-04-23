@@ -34,16 +34,15 @@
 #   VCPKG_MANIFEST_DIR to extern/vcpkg.json, or otherwise interfering with
 #   the port build. Indicators that we're inside a vcpkg-driven build:
 #     * CMAKE_TOOLCHAIN_FILE is already set (any toolchain in effect)
-#     * VCPKG_INSTALLED_DIR / Z_VCPKG_ROOT_DIR exported by vcpkg's portfile
+#     * Z_VCPKG_ROOT_DIR exported by vcpkg's portfile
 
 if(DEFINED CMAKE_TOOLCHAIN_FILE
-   OR DEFINED VCPKG_INSTALLED_DIR
-   OR DEFINED ENV{VCPKG_INSTALLED_DIR}
    OR DEFINED ENV{Z_VCPKG_ROOT_DIR})
   return()
 endif()
 
 if(DEFINED ENV{VCPKG_ROOT})
+  message(STATUS "Using VCPKG_ROOT: $ENV{VCPKG_ROOT}")
   file(TO_CMAKE_PATH "$ENV{VCPKG_ROOT}" VCPKG_ROOT_CMAKE)
 
   if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
