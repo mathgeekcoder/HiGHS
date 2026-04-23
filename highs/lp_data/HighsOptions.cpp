@@ -103,16 +103,18 @@ bool optionSolverOk(const HighsLogOptions& report_log_options,
     return false;
   }
   if (value == kHighsChooseString || value == kSimplexString ||
-      value == kIpmString || (value == kHipoString && HighsExternalDeps::isAvailable()) ||
+      value == kIpmString ||
+      (value == kHipoString && HighsExternalDeps::isAvailable()) ||
       value == kIpxString || value == kPdlpString)
     return true;
-  highsLogUser(report_log_options, HighsLogType::kWarning,
-               "Value \"%s\" for LP solver option (\"%s\") is not one of "
-               "%s\"%s\", \"%s\", \"%s\", \"%s\" or \"%s\"\n",
-               value.c_str(), kSolverString.c_str(),
-               HighsExternalDeps::isAvailable() ? (kHipoString + "\", \"").c_str() : "",
-               kHighsChooseString.c_str(), kSimplexString.c_str(),
-               kIpmString.c_str(), kIpxString.c_str(), kPdlpString.c_str());
+  highsLogUser(
+      report_log_options, HighsLogType::kWarning,
+      "Value \"%s\" for LP solver option (\"%s\") is not one of "
+      "%s\"%s\", \"%s\", \"%s\", \"%s\" or \"%s\"\n",
+      value.c_str(), kSolverString.c_str(),
+      HighsExternalDeps::isAvailable() ? (kHipoString + "\", \"").c_str() : "",
+      kHighsChooseString.c_str(), kSimplexString.c_str(), kIpmString.c_str(),
+      kIpxString.c_str(), kPdlpString.c_str());
   return false;
 }
 
@@ -141,16 +143,18 @@ bool optionMipLpSolverOk(const HighsLogOptions& report_log_options,
   }
 
   if (value == kHighsChooseString || value == kSimplexString ||
-      value == kIpmString || (value == kHipoString && HighsExternalDeps::isAvailable()) ||
+      value == kIpmString ||
+      (value == kHipoString && HighsExternalDeps::isAvailable()) ||
       value == kIpxString)
     return true;
-  highsLogUser(report_log_options, HighsLogType::kError,
-               "Value \"%s\" for MIP LP solver option (\"%s\") is not one of "
-               "%s\"%s\", \"%s\", \"%s\" or \"%s\"\n",
-               value.c_str(), kMipLpSolverString.c_str(),
-               HighsExternalDeps::isAvailable() ? (kHipoString + "\", \"").c_str() : "",
-               kHighsChooseString.c_str(), kSimplexString.c_str(),
-               kIpmString.c_str(), kIpxString.c_str());
+  highsLogUser(
+      report_log_options, HighsLogType::kError,
+      "Value \"%s\" for MIP LP solver option (\"%s\") is not one of "
+      "%s\"%s\", \"%s\", \"%s\" or \"%s\"\n",
+      value.c_str(), kMipLpSolverString.c_str(),
+      HighsExternalDeps::isAvailable() ? (kHipoString + "\", \"").c_str() : "",
+      kHighsChooseString.c_str(), kSimplexString.c_str(), kIpmString.c_str(),
+      kIpxString.c_str());
   return false;
 }
 
@@ -178,15 +182,16 @@ bool optionMipIpmSolverOk(const HighsLogOptions& report_log_options,
     return false;
   }
   if (value == kHighsChooseString || value == kIpmString ||
-      (value == kHipoString && HighsExternalDeps::isAvailable()) || value == kIpxString)
+      (value == kHipoString && HighsExternalDeps::isAvailable()) ||
+      value == kIpxString)
     return true;
-  highsLogUser(report_log_options, HighsLogType::kError,
-               "Value \"%s\" for MIP IPM solver (\"%s\") option is not one of "
-               "%s\"%s\", \"%s\" or \"%s\"\n",
-               value.c_str(), kMipIpmSolverString.c_str(),
-               HighsExternalDeps::isAvailable() ? (kHipoString + "\", \"").c_str() : "",
-               kHighsChooseString.c_str(), kIpmString.c_str(),
-               kIpxString.c_str());
+  highsLogUser(
+      report_log_options, HighsLogType::kError,
+      "Value \"%s\" for MIP IPM solver (\"%s\") option is not one of "
+      "%s\"%s\", \"%s\" or \"%s\"\n",
+      value.c_str(), kMipIpmSolverString.c_str(),
+      HighsExternalDeps::isAvailable() ? (kHipoString + "\", \"").c_str() : "",
+      kHighsChooseString.c_str(), kIpmString.c_str(), kIpxString.c_str());
   return false;
 }
 

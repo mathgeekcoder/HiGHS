@@ -90,8 +90,8 @@ jobs:
           python-version: '3.x'
 
       - name: Verify wheels
+        shell: python
         run: |
-          python - <<'PY'
           import zipfile, glob, sys
 
           bad = []
@@ -106,7 +106,6 @@ jobs:
               sys.exit(1)
 
           print("All wheels OK:", glob.glob('wheelhouse/*.whl'))
-          PY
 
       - uses: actions/upload-artifact@v4
         with:
