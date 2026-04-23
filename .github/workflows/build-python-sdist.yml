@@ -103,7 +103,7 @@ jobs:
 
       - name: Build sdist
         shell: bash
-        run: pipx run build --sdist highspy-extras/
+        run: pipx run build --sdist --outdir ./dist highspy-extras/
 
       - name: Build sdist
         shell: bash
@@ -140,7 +140,7 @@ jobs:
 
       - name: Build sdist
         shell: bash
-        run: pipx run build --sdist highspy-extras/
+        run: pipx run build --sdist --outdir ./dist highspy-extras/
 
       - name: Build sdist
         shell: bash
@@ -176,7 +176,7 @@ jobs:
 
       - name: Build sdist
         shell: bash
-        run: pipx run build --sdist highspy-extras/
+        run: pipx run build --sdist --outdir dist highspy-extras/
 
       - name: Build sdist
         shell: bash

@@ -80,12 +80,13 @@ repair-wheel-command = ""
 build-verbosity = 1
 
 # All github runners have vcpkg pre-installed
-# forward environment vars into the isolated build environment
-# assume either VCPKG_ROOT xor VCPKG_INSTALLATION_ROOT is defined
+# Assume either VCPKG_ROOT xor VCPKG_INSTALLATION_ROOT is defined
 environment-pass = ["VCPKG_ROOT", "VCPKG_INSTALLATION_ROOT", "VCPKG_DEFAULT_BINARY_CACHE", "VCPKG_BINARY_SOURCES"]
 
 [tool.cibuildwheel.linux]
 environment = { VCPKG_ROOT = "/host$VCPKG_ROOT$VCPKG_INSTALLATION_ROOT" }
+before-build = 'git -C "$VCPKG_ROOT" pull --ff-only'
 
 [tool.cibuildwheel.windows]
 environment = { VCPKG_ROOT = "$VCPKG_ROOT$VCPKG_INSTALLATION_ROOT" }
+before-build = 'git -C "$VCPKG_ROOT" pull --ff-only'

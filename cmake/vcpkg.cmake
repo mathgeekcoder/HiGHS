@@ -41,15 +41,17 @@ if(DEFINED CMAKE_TOOLCHAIN_FILE
   return()
 endif()
 
+if (DEFINED ENV{VCPKG_INSTALLATION_ROOT} AND NOT DEFINED ENV{VCPKG_ROOT})
+  set(ENV{VCPKG_ROOT} $ENV{VCPKG_INSTALLATION_ROOT})
+endif()
+
 if(DEFINED ENV{VCPKG_ROOT})
   message(STATUS "Using VCPKG_ROOT: $ENV{VCPKG_ROOT}")
   file(TO_CMAKE_PATH "$ENV{VCPKG_ROOT}" VCPKG_ROOT_CMAKE)
 
-  if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
-    set(CMAKE_TOOLCHAIN_FILE
-      "${VCPKG_ROOT_CMAKE}/scripts/buildsystems/vcpkg.cmake"
-      CACHE FILEPATH "vcpkg toolchain file")
-  endif()
+  set(CMAKE_TOOLCHAIN_FILE
+    "${VCPKG_ROOT_CMAKE}/scripts/buildsystems/vcpkg.cmake"
+    CACHE FILEPATH "vcpkg toolchain file")
 
   # The manifest lives in extern/ alongside the code that consumes the
   # dependencies. vcpkg only auto-discovers vcpkg.json in CMAKE_SOURCE_DIR,
