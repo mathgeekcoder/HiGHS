@@ -59,7 +59,7 @@ jobs:
           path: wheelhouse/*.whl
 
   build_wheels_extras:
-    name: Build highspy-extras wheel for ${{ matrix.python }}-${{ matrix.buildplat[1] }}
+    name: Build highspy-extras wheels for ${{ matrix.buildplat[1] }}
     runs-on: ${{ matrix.buildplat[0] }}
     strategy:
       fail-fast: false
@@ -75,7 +75,6 @@ jobs:
           - [macos-14, macosx_arm64]
           - [windows-2022, win_amd64]
           - [windows-2022, win32]
-        python: ["cp38", "cp39", "cp310", "cp311", "cp312", "cp313", "cp314"]
     steps:
       - uses: actions/checkout@v4
 
@@ -84,7 +83,7 @@ jobs:
         with:
           package-dir: ./highspy-extras
         env:
-          CIBW_BUILD: ${{ matrix.python }}-${{ matrix.buildplat[1] }}
+          CIBW_BUILD: "cp3*-${{ matrix.buildplat[1] }}"
 
       - uses: actions/setup-python@v5
         with:
@@ -110,7 +109,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: cibw-extras-wheels-${{ matrix.python }}-${{ matrix.buildplat[1] }}
+          name: cibw-extras-wheels-${{ matrix.buildplat[1] }}
           path: wheelhouse/*.whl
 
   build_sdist_extras:
