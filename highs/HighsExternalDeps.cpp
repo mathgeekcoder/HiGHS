@@ -10,6 +10,7 @@
  */
 
 #include "HighsExternalDeps.h"
+
 #include "HConfig.h"
 
 // c++11 does not support inline static definition
@@ -36,28 +37,29 @@ HighsExternalDeps& HighsExternalDeps::instance() {
 
 // anonymous namespace to limit the scope of helper functions to this file
 namespace {
-  std::string getLibraryFilename(const std::string& path) {
-  #if defined(_WIN32) || defined(_WIN64)
-    return path + (path.empty() ? "" : "\\") + "highs_extras.dll";
-  #elif defined(__APPLE__)
-    return path + (path.empty() ? "" : "@loader_path/") + "libhighs_extras.dylib";
-  #else
-    return path + (path.empty() ? "" : "/") + "libhighs_extras.so";
-  #endif
-  }
-
-  template <typename FuncType>
-  bool resolveSymbol(void* handle, FuncType& target, const char* name) {
-  #if defined(_WIN32) || defined(_WIN64)
-    target = reinterpret_cast<FuncType>(
-        GetProcAddress(static_cast<HMODULE>(handle), name));
-  #else
-    target = reinterpret_cast<FuncType>(dlsym(handle, name));
-  #endif
-
-    return target != nullptr;
-  }
+std::string getLibraryFilename(const std::string& path) {
+#if defined(_WIN32) || defined(_WIN64)
+  return path + (path.empty() ? "" : "\\") + "highs_extras.dll";
+#elif defined(__APPLE__)
+  return path + (path.empty() ? "@loader_path/" : "/") +
+         "libhighs_extras.dylib";
+#else
+  return path + (path.empty() ? "" : "/") + "libhighs_extras.so";
+#endif
 }
+
+template <typename FuncType>
+bool resolveSymbol(void* handle, FuncType& target, const char* name) {
+#if defined(_WIN32) || defined(_WIN64)
+  target = reinterpret_cast<FuncType>(
+      GetProcAddress(static_cast<HMODULE>(handle), name));
+#else
+  target = reinterpret_cast<FuncType>(dlsym(handle, name));
+#endif
+
+  return target != nullptr;
+}
+}  // namespace
 
 void HighsExternalDeps::clear() {
   amd_ = amd{};
@@ -95,27 +97,27 @@ bool HighsExternalDeps::tryLoad(const std::string& path) {
 
   // prevents multiple attempts to load the library
   // ensure thread safety (multiple threads may call tryLoad simultaneously)
-  std::call_once(flag, [&]() { 
+  std::call_once(flag, [&]() {
     inst.available_ = false;
 
     // Load library
     const std::string full_path = getLibraryFilename(path);
     bool ok = true;
 
-  #if defined(_WIN32) || defined(_WIN64)
+#if defined(_WIN32) || defined(_WIN64)
     inst.lib_handle_ = static_cast<void*>(LoadLibraryA(full_path.c_str()));
     if (!inst.lib_handle_) {
       DWORD error = GetLastError();
       char* msg = nullptr;
-      FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
-                    nullptr, error, 0, reinterpret_cast<LPSTR>(&msg), 0,
-                    nullptr);
-      inst.status_ =
-          "Extras: Failed to load " + full_path + ": " + (msg ? msg : "Unknown error");
+      FormatMessageA(
+          FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM, nullptr,
+          error, 0, reinterpret_cast<LPSTR>(&msg), 0, nullptr);
+      inst.status_ = "Extras: Failed to load " + full_path + ": " +
+                     (msg ? msg : "Unknown error");
       if (msg) LocalFree(msg);
       ok = false;
     }
-  #else
+#else
     inst.lib_handle_ = dlopen(full_path.c_str(), RTLD_NOW | RTLD_LOCAL);
     if (!inst.lib_handle_) {
       const char* err = dlerror();
@@ -123,14 +125,14 @@ bool HighsExternalDeps::tryLoad(const std::string& path) {
           "Extras: Failed to load " + full_path + ": " + (err ? err : "Unknown error");
       ok = false;
     }
-  #endif
+#endif
     else {
       // Resolve all function pointers
       void* h = inst.lib_handle_;
 
       // AMD
-      ok &= resolveSymbol(h, amd_.defaults_,"highs_extras_amd_defaults");
-      ok &= resolveSymbol(h, amd_.order_,   "highs_extras_amd_order");
+      ok &= resolveSymbol(h, amd_.defaults_, "highs_extras_amd_defaults");
+      ok &= resolveSymbol(h, amd_.order_, "highs_extras_amd_order");
 
       // BLAS
       ok &= resolveSymbol(h, blas_.daxpy_, "highs_extras_daxpy");
@@ -140,41 +142,41 @@ bool HighsExternalDeps::tryLoad(const std::string& path) {
       ok &= resolveSymbol(h, blas_.dgemv_, "highs_extras_dgemv");
       ok &= resolveSymbol(h, blas_.dtpsv_, "highs_extras_dtpsv");
       ok &= resolveSymbol(h, blas_.dtrsv_, "highs_extras_dtrsv");
-      ok &= resolveSymbol(h, blas_.dger_,  "highs_extras_dger");
+      ok &= resolveSymbol(h, blas_.dger_, "highs_extras_dger");
       ok &= resolveSymbol(h, blas_.dgemm_, "highs_extras_dgemm");
       ok &= resolveSymbol(h, blas_.dsyrk_, "highs_extras_dsyrk");
       ok &= resolveSymbol(h, blas_.dtrsm_, "highs_extras_dtrsm");
-      ok &= resolveSymbol(h, blas_.set_num_threads_, "highs_extras_openblas_set_num_threads");
+      ok &= resolveSymbol(h, blas_.set_num_threads_,
+                          "highs_extras_openblas_set_num_threads");
       ok &= resolveSymbol(h, blas_.library_, "highs_extras_blas_library");
 
       // METIS
       ok &= resolveSymbol(h, metis_.set_default_options_,
-                        "highs_extras_metis_set_default_options");
+                          "highs_extras_metis_set_default_options");
       ok &= resolveSymbol(h, metis_.nodend_, "highs_extras_metis_nodend");
 
       // Check ABI compatibility
       highs_extras_api::core::get_version_t get_version = nullptr;
       ok &= resolveSymbol(h, get_version, "highs_extras_get_version");
 
-      ok &= resolveSymbol(h, instance().get_copyright_, "highs_extras_get_copyright");
+      ok &= resolveSymbol(h, instance().get_copyright_,
+                          "highs_extras_get_copyright");
 
       if (!ok) {
         inst.status_ = "Extras: Failed to resolve required external functions";
         inst.unload();
-      }
-      else {
+      } else {
         std::string highs_version = STRINGFY(HIGHS_VERSION_MAJOR) "." STRINGFY(
             HIGHS_VERSION_MINOR) "." STRINGFY(HIGHS_VERSION_PATCH);
         std::string extras_version = get_version();
         if (extras_version != highs_version) {
-          inst.status_ =
-              "Extras: ABI version mismatch: expected " + highs_version +
-              ", got " + extras_version +
-              ". Please reinstall: pip install --force-reinstall highspy[extras]";
+          inst.status_ = "Extras: ABI version mismatch: expected " +
+                         highs_version + ", got " + extras_version +
+                         ". Please reinstall: pip install --force-reinstall "
+                         "highspy[extras]";
           inst.unload();
           ok = false;
-        }
-        else {
+        } else {
           inst.status_ = "Extras: Successfully loaded";
         }
       }

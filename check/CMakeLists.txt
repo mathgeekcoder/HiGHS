@@ -39,6 +39,7 @@ if ((NOT FAST_BUILD OR ALL_TESTS) AND NOT (BUILD_EXTRA_UNIT_ONLY))
       TestFactor.cpp
       TestFilereader.cpp
       TestHighsCDouble.cpp
+      TestHighsExternalDeps.cpp
       TestHighsGFkSolve.cpp
       TestHighsHash.cpp
       TestHighsHessian.cpp
