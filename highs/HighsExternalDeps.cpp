@@ -24,6 +24,11 @@ HighsExternalDeps& HighsExternalDeps::instance() {
   return _instance;
 }
 
+bool HighsExternalDeps::tryLoad() {
+  static const std::string empty_path = "";
+  return tryLoad(empty_path);
+}
+
 #ifdef HIGHS_SHARED_EXTRAS_LIBRARY
 // Platform-specific includes for dynamic loading
 #if defined(_WIN32) || defined(_WIN64)
@@ -85,11 +90,6 @@ void HighsExternalDeps::unload() {
 
 #define STRINGFY(s) STRINGFY0(s)
 #define STRINGFY0(s) #s
-
-bool HighsExternalDeps::tryLoad() {
-  static const std::string empty_path = "";
-  return tryLoad(empty_path);
-}
 
 bool HighsExternalDeps::tryLoad(const std::string& path) {
   HighsExternalDeps& inst = instance();
