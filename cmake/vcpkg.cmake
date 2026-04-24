@@ -96,6 +96,15 @@ if(DEFINED ENV{VCPKG_ROOT} AND NOT "$ENV{VCPKG_ROOT}" STREQUAL "")
     if(WIN32 AND DEFINED _vcpkg_arch)
       set(VCPKG_TARGET_TRIPLET "${_vcpkg_arch}-windows-static"
         CACHE STRING "vcpkg triplet")
+      set(VCPKG_HOST_TRIPLET "${_vcpkg_arch}-windows-static"
+        CACHE STRING "vcpkg host triplet")
+
+      # Match the static CRT used by the *-windows-static triplet to
+      # avoid LNK4098 "defaultlib 'LIBCMT' conflicts with ..." warnings.
+      set(CMAKE_MSVC_RUNTIME_LIBRARY
+        "MultiThreaded$<$<CONFIG:Debug>:Debug>"
+        CACHE STRING "MSVC runtime library")
+        
     elseif(APPLE AND DEFINED _vcpkg_arch)
       set(VCPKG_TARGET_TRIPLET "${_vcpkg_arch}-osx"
         CACHE STRING "vcpkg triplet")

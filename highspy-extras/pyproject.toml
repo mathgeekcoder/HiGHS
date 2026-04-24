@@ -87,6 +87,8 @@ build-verbosity = 1
 environment-pass = ["VCPKG_ROOT", "VCPKG_INSTALLATION_ROOT", "VCPKG_DEFAULT_BINARY_CACHE"]
 
 [tool.cibuildwheel.linux]
+# vcpkg needs zip/unzip to reuse binary caches; use host installs via /host mount
+before-all = "ln -sf /host/usr/bin/zip /usr/local/bin/zip && ln -sf /host/usr/bin/unzip /usr/local/bin/unzip"
 environment = { VCPKG_ROOT = "/host$VCPKG_ROOT$VCPKG_INSTALLATION_ROOT", VCPKG_DEFAULT_BINARY_CACHE = "/host$VCPKG_DEFAULT_BINARY_CACHE" }
 
 # cannot use host vcpkg on i686 and musllinux
