@@ -84,7 +84,7 @@ build-verbosity = 1
 
 # All github runners have vcpkg pre-installed
 # Assume either VCPKG_ROOT xor VCPKG_INSTALLATION_ROOT is defined
-environment-pass = ["VCPKG_ROOT", "VCPKG_INSTALLATION_ROOT", "VCPKG_DEFAULT_BINARY_CACHE", "VCPKG_BINARY_SOURCES"]
+environment-pass = ["VCPKG_ROOT", "VCPKG_INSTALLATION_ROOT", "VCPKG_DEFAULT_BINARY_CACHE", "VCPKG_BINARY_SOURCES", "ACTIONS_CACHE_URL", "ACTIONS_RUNTIME_TOKEN"]
 
 [tool.cibuildwheel.linux]
 environment = { VCPKG_ROOT = "/host$VCPKG_ROOT$VCPKG_INSTALLATION_ROOT" }

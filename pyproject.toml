@@ -116,6 +116,9 @@ archs = ["auto64", "auto32"]
 # Enable free-threaded support
 enable = ["cpython-freethreading"]
 
+# highspy does not need vcpkg dependencies (avoid unnecessary compile)
+environment = { VCPKG_ROOT = "", VCPKG_INSTALLATION_ROOT = "" }
+
 test-command = "pytest {project}/highspy/tests"
 test-extras = ["test", "numpy"]
 build-verbosity = 1
