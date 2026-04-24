@@ -17,3 +17,24 @@ TEST_CASE("HighsExternalDeps", "[highs_external_deps]") {
     REQUIRE(!HighsExternalDeps::isAvailable());
   }
 }
+
+TEST_CASE("HighsExternalDeps-compile-time", "[highs_external_deps]") {
+  // isAvailableAtCompile should be consistent with build config
+  bool compile = HighsExternalDeps::isAvailableAtCompile();
+
+  // If compile-time available, runtime must also be available
+  if (compile) {
+    REQUIRE(HighsExternalDeps::isAvailable());
+  }
+}
+
+TEST_CASE("HighsExternalDeps-getCopyrightInfo", "[highs_external_deps]") {
+  HighsExternalDeps::tryLoad();
+  std::string info = HighsExternalDeps::getCopyrightInfo();
+
+  if (HighsExternalDeps::isAvailable()) {
+    REQUIRE(!info.empty());
+  } else {
+    REQUIRE(info.empty());
+  }
+}
