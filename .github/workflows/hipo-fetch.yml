@@ -6,6 +6,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  # do not use vcpkg for this workflow
+  VCPKG_INSTALLATION_ROOT: ""
+
 jobs:
   ubuntu:
     runs-on: ${{ matrix.os }}
