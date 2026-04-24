@@ -78,12 +78,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Pin the in-container vcpkg to the same version as the host runner so
+      # that i686/musllinux builds (which can't reuse the host vcpkg) stay
+      # reproducible and share the same port versions.
+      - name: Get vcpkg commit
+        id: vcpkg-commit
+        shell: bash
+        run: echo "commit=$(git -C "$VCPKG_INSTALLATION_ROOT" rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
       - name: Build wheels
         uses: pypa/cibuildwheel@v3.3.1
         with:
           package-dir: ./highspy-extras
         env:
           CIBW_BUILD: "cp3*-${{ matrix.buildplat[1] }}"
+          VCPKG_COMMIT: "${{ steps.vcpkg-commit.outputs.commit }}"
 
       - uses: actions/setup-python@v5
         with:
