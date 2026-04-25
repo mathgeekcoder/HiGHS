@@ -99,10 +99,12 @@ inherit.environment = "none"
 before-all = "yum install -y zip unzip ninja-build cmake && export LDFLAGS=\"${LDFLAGS:-} -ldl\" && git clone https://github.com/microsoft/vcpkg.git /opt/vcpkg && if [ -n \"$VCPKG_COMMIT\" ]; then git -C /opt/vcpkg checkout $VCPKG_COMMIT; fi && /opt/vcpkg/bootstrap-vcpkg.sh -disableMetrics"
 environment = { VCPKG_ROOT = "/opt/vcpkg", VCPKG_FORCE_SYSTEM_BINARIES = "1" }
 
+# Disable DLSYM in vcpkg bootstrap so it uses system curl-dev headers;
+# the FetchContent'd curl 7.55.1 headers lack proper musl/aarch64 support.
 [[tool.cibuildwheel.overrides]]
 select = "*-musllinux_*"
 inherit.environment = "none"
-before-all = "apk add --no-cache zip unzip curl curl-dev build-base linux-headers perl ninja cmake && git clone https://github.com/microsoft/vcpkg.git /opt/vcpkg && if [ -n \"$VCPKG_COMMIT\" ]; then git -C /opt/vcpkg checkout $VCPKG_COMMIT; fi && /opt/vcpkg/bootstrap-vcpkg.sh -disableMetrics"
+before-all = "apk add --no-cache zip unzip curl curl-dev build-base linux-headers perl ninja cmake && git clone https://github.com/microsoft/vcpkg.git /opt/vcpkg && if [ -n \"$VCPKG_COMMIT\" ]; then git -C /opt/vcpkg checkout $VCPKG_COMMIT; fi && sed -i '/cmakeConfigOptions=/s/\"$/ -DVCPKG_LIBCURL_DLSYM=OFF\"/' /opt/vcpkg/scripts/bootstrap.sh && /opt/vcpkg/bootstrap-vcpkg.sh -disableMetrics"
 environment = { VCPKG_ROOT = "/opt/vcpkg", VCPKG_FORCE_SYSTEM_BINARIES = "1" }
 
 [tool.cibuildwheel.windows]
